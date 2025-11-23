@@ -9,6 +9,7 @@ using UnityEngine;
 /// POST /api/player/login
 /// GET  /api/player
 /// PUT  /api/player
+/// PUT  /api/player/account
 /// DELETE /api/delete/:playerId
 /// 
 /// Data is stored in:
@@ -42,6 +43,14 @@ public class PlayerApi : MonoBehaviour
         public string username; // optional, if empty we use CurrentUser
         public int wins;
         public int losses;
+    }
+
+    [Serializable]
+    public class UpdateAccountRequest
+    {
+        public string username;   // optional, if empty we use CurrentUser
+        public string newEmail;
+        public string newPassword;
     }
 
     public class ApiResponse<T>
@@ -96,14 +105,13 @@ public class PlayerApi : MonoBehaviour
             return new ApiResponse<UserData>(false, "All fields are required.");
         }
 
-        // ✔ SAME LOGIC YOU REQUESTED
         // username already exists
         if (users.ContainsKey(req.username))
         {
             return new ApiResponse<UserData>(false, "Username already exists.");
         }
 
-        // create new player (same as your code)
+        // create new player
         UserData newUser = new UserData
         {
             Username = req.username,
@@ -161,12 +169,12 @@ public class PlayerApi : MonoBehaviour
         string username = PlayerPrefs.GetString("CurrentUser", "");
         if (string.IsNullOrEmpty(username))
         {
-            return new ApiResponse<UserData>(false, "No player logged in.");
+            return new ApiResponse<UserData>(false, "No player logged in.", null);
         }
 
         if (!users.ContainsKey(username))
         {
-            return new ApiResponse<UserData>(false, "Player not found in database.");
+            return new ApiResponse<UserData>(false, "Player not found in database.", null);
         }
 
         return new ApiResponse<UserData>(true, "Player data loaded.", users[username]);
@@ -182,12 +190,12 @@ public class PlayerApi : MonoBehaviour
 
         if (string.IsNullOrEmpty(username))
         {
-            return new ApiResponse<UserData>(false, "No player specified.");
+            return new ApiResponse<UserData>(false, "No player specified.", null);
         }
 
         if (!users.ContainsKey(username))
         {
-            return new ApiResponse<UserData>(false, "Player not found.");
+            return new ApiResponse<UserData>(false, "Player not found.", null);
         }
 
         UserData user = users[username];
@@ -199,6 +207,41 @@ public class PlayerApi : MonoBehaviour
         SaveDatabase();
 
         return new ApiResponse<UserData>(true, "Player updated.", user);
+    }
+
+    // ---------- API: PUT /api/player/account (email + password) ----------
+
+    public ApiResponse<UserData> UpdateAccount(UpdateAccountRequest req)
+    {
+        string username = string.IsNullOrEmpty(req.username)
+            ? PlayerPrefs.GetString("CurrentUser", "")
+            : req.username;
+
+        if (string.IsNullOrEmpty(username))
+        {
+            return new ApiResponse<UserData>(false, "No player specified.", null);
+        }
+
+        if (!users.ContainsKey(username))
+        {
+            return new ApiResponse<UserData>(false, "Player not found.", null);
+        }
+
+        if (string.IsNullOrWhiteSpace(req.newEmail) ||
+            string.IsNullOrWhiteSpace(req.newPassword))
+        {
+            return new ApiResponse<UserData>(false, "Email and password are required.", null);
+        }
+
+        UserData user = users[username];
+        user.Email = req.newEmail;
+        user.Password = req.newPassword;
+
+        users[username] = user;
+        SaveUserToPlayerPrefs(user);
+        SaveDatabase();
+
+        return new ApiResponse<UserData>(true, "Account updated.", user);
     }
 
     // ---------- API: DELETE /api/delete/:playerId ----------
@@ -255,7 +298,6 @@ public class PlayerApi : MonoBehaviour
             }
         }
     }
-
 
     private void SaveDatabase()
     {

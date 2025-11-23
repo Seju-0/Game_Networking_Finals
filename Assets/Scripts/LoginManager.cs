@@ -18,10 +18,22 @@ public class LoginManager : MonoBehaviour
     public TMP_InputField regRepeatPasswordInput;
     public TMP_Text registerMessage;
 
+    [Header("Reset UI")]
+    public GameObject resetPanel;
+    public TMP_InputField resetEmailInput;
+    public TMP_InputField resetPasswordInput;
+    public TMP_InputField resetRepeatPasswordInput;
+    public TMP_Text resetMessage;
+
     private void Start()
     {
         loginPanel.SetActive(true);
         registerPanel.SetActive(false);
+        resetPanel.SetActive(false);
+
+        loginMessage.text = "";
+        registerMessage.text = "";
+        resetMessage.text = "";
     }
 
     // -------------------------
@@ -49,7 +61,7 @@ public class LoginManager : MonoBehaviour
 
         if (res.success)
         {
-            // Save the logged-in user
+            // Save the logged-in user (username as key in DB)
             PlayerPrefs.SetString("CurrentUser", username);
 
             // Load next scene
@@ -100,6 +112,55 @@ public class LoginManager : MonoBehaviour
     }
 
     // -------------------------
+    // RESET EMAIL + PASSWORD
+    // -------------------------
+    public void OnResetButton()
+    {
+        string email = resetEmailInput.text;
+        string password = resetPasswordInput.text;
+        string repeatPass = resetRepeatPasswordInput.text;
+
+        if (string.IsNullOrEmpty(email) ||
+            string.IsNullOrEmpty(password) ||
+            string.IsNullOrEmpty(repeatPass))
+        {
+            resetMessage.text = "Please fill all fields.";
+            return;
+        }
+
+        if (password != repeatPass)
+        {
+            resetMessage.text = "Passwords do not match.";
+            return;
+        }
+
+        // Use current logged-in username as key
+        string currentUser = PlayerPrefs.GetString("CurrentUser", "");
+
+        if (string.IsNullOrEmpty(currentUser))
+        {
+            resetMessage.text = "No current user found.";
+            return;
+        }
+
+        var req = new PlayerApi.UpdateAccountRequest
+        {
+            username = currentUser,
+            newEmail = email,
+            newPassword = password
+        };
+
+        var res = PlayerApi.Instance.UpdateAccount(req);
+        resetMessage.text = res.message;
+
+        if (res.success)
+        {
+            // username in DB stays the same, we only changed email + pass
+            Invoke(nameof(SwitchToLogin), 1.5f);
+        }
+    }
+
+    // -------------------------
     // DELETE ACCOUNT FUNCTION
     // -------------------------
     public void OnDeleteAccountButton()
@@ -136,14 +197,30 @@ public class LoginManager : MonoBehaviour
     public void SwitchToRegister()
     {
         loginPanel.SetActive(false);
+        resetPanel.SetActive(false);
         registerPanel.SetActive(true);
+
         loginMessage.text = "";
+        resetMessage.text = "";
     }
 
     public void SwitchToLogin()
     {
         loginPanel.SetActive(true);
         registerPanel.SetActive(false);
+        resetPanel.SetActive(false);
+
+        registerMessage.text = "";
+        resetMessage.text = "";
+    }
+
+    public void SwitchToReset()
+    {
+        loginPanel.SetActive(false);
+        registerPanel.SetActive(false);
+        resetPanel.SetActive(true);
+
+        loginMessage.text = "";
         registerMessage.text = "";
     }
 }
