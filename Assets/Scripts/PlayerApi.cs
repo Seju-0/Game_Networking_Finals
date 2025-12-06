@@ -61,7 +61,7 @@ public class PlayerApi : MonoBehaviour
     // ---------- Internal DB ----------
 
     [Serializable]
-    private class UserListWrapper
+    public class UserListWrapper
     {
         public List<UserData> users = new List<UserData>();
     }

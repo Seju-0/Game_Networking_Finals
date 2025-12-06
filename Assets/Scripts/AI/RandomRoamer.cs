@@ -3,12 +3,12 @@ using UnityEngine.AI;
 using System.Collections;
 
 [RequireComponent(typeof(NavMeshAgent))]
-[RequireComponent(typeof(Collider))] // We'll use a trigger on the AI
+[RequireComponent(typeof(Collider))] 
 public class AIRoamChaseOnBump : MonoBehaviour
 {
     [Header("Player Detection")]
     public string playerTag = "Player";
-    public Renderer playerRendererOverride;   // optional: drag the player's Renderer here
+    public Renderer playerRendererOverride;  
 
     [Header("Roaming")]
     public float roamRadius = 15f;
@@ -17,8 +17,8 @@ public class AIRoamChaseOnBump : MonoBehaviour
     public float maxWait = 2f;
 
     [Header("Chase")]
-    public float repathIntervalWhileChasing = 0.15f; // how often to update destination
-    public float giveUpAfterSeconds = 0f;            // 0 = never give up
+    public float repathIntervalWhileChasing = 0.15f; 
+    public float giveUpAfterSeconds = 0f;           
 
     [Header("Stuck Check (optional)")]
     public float stuckSpeed = 0.05f;
@@ -42,7 +42,6 @@ public class AIRoamChaseOnBump : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         aiRenderers = GetComponentsInChildren<Renderer>(true);
 
-        // Make the AI collider a trigger and add a kinematic RB so triggers fire reliably
         var col = GetComponent<Collider>();
         col.isTrigger = true;
 
@@ -81,7 +80,6 @@ public class AIRoamChaseOnBump : MonoBehaviour
             return;
         }
 
-        // Roaming arrival
         if (!waiting && agent.hasPath && !agent.pathPending &&
             agent.remainingDistance <= Mathf.Max(arrivalDistance, agent.stoppingDistance))
         {
@@ -89,7 +87,6 @@ public class AIRoamChaseOnBump : MonoBehaviour
             return;
         }
 
-        // Roaming stuck detection
         if (agent.hasPath && agent.remainingDistance > agent.stoppingDistance)
         {
             if (agent.velocity.sqrMagnitude < stuckSpeed * stuckSpeed)
@@ -112,11 +109,9 @@ public class AIRoamChaseOnBump : MonoBehaviour
 
         player = other.transform;
 
-        // Copy color from player
         var src = playerRendererOverride ? playerRendererOverride : other.GetComponentInChildren<Renderer>();
         if (src != null) ApplyColorToAI(GetColor(src));
 
-        // Start chasing
         StartChasing();
     }
 
@@ -165,7 +160,7 @@ public class AIRoamChaseOnBump : MonoBehaviour
         if (!agent.isOnNavMesh &&
             NavMesh.SamplePosition(transform.position, out var hit, 3f, NavMesh.AllAreas))
         {
-            agent.Warp(hit.position); // use Warp for agents
+            agent.Warp(hit.position);
         }
     }
 
@@ -184,10 +179,10 @@ public class AIRoamChaseOnBump : MonoBehaviour
 
     static Color GetColor(Renderer r)
     {
-        var m = r.sharedMaterial; // Use sharedMaterial to prevent prefab conflicts
+        var m = r.sharedMaterial; 
         if (m == null) return Color.white;
-        if (m.HasProperty("_BaseColor")) return m.GetColor("_BaseColor"); // URP
-        if (m.HasProperty("_Color")) return m.GetColor("_Color");     // Standard
+        if (m.HasProperty("_BaseColor")) return m.GetColor("_BaseColor"); 
+        if (m.HasProperty("_Color")) return m.GetColor("_Color");    
         return Color.white;
     }
 
