@@ -6,60 +6,64 @@ using System.Linq;
 public class LeaderboardManager : MonoBehaviour
 {
     [Header("UI Leaderboard Parent")]
-    public Transform leaderboardParent;
+    public Transform leaderboardParent;     // the Content object of your scroll view
 
     [Header("Leaderboard Row Template")]
-    public GameObject leaderboardRowPrefab;
+    public GameObject leaderboardRowPrefab; // prefab with 3 TMP_Texts: Rank, Name, Wins
 
     private List<UserData> sortedUsers = new List<UserData>();
 
-    private void Start()
-    {
-        LoadLeaderboard();
-    }
-
+    // Called by the button through LeaderboardUIController
     public void LoadLeaderboard()
     {
-        // Clear previous rows first
+        // 1) Clear old rows
         foreach (Transform child in leaderboardParent)
+        {
             Destroy(child.gameObject);
+        }
 
-        // Fetch DB list straight from PlayerApi via reflection through saved Users
-        var response = PlayerApi.Instance.GetPlayer(); // ensures DB loaded at least once
+        // 2) Get all users from PlayerApi
+        if (PlayerApi.Instance == null)
+        {
+            Debug.LogError("[LB] No PlayerApi instance in scene.");
+            return;
+        }
 
-        // Now load full DB
-        var db = LoadAllUsers();
-        sortedUsers = db.OrderByDescending(u => u.Wins).ToList();
+        List<UserData> allUsers = PlayerApi.Instance.GetAllUsers();
 
-        DisplayLeaderboard();
-    }
+        if (allUsers == null || allUsers.Count == 0)
+        {
+            Debug.Log("[LB] No users in DB.");
+            return;
+        }
 
-    private List<UserData> LoadAllUsers()
-    {
-        string path = System.IO.Path.Combine(Application.persistentDataPath, "users_db.json");
+        // 3) Sort by Wins (highest first)
+        sortedUsers = allUsers.OrderByDescending(u => u.Wins).ToList();
+        Debug.Log($"[LB] Building leaderboard with {sortedUsers.Count} users.");
 
-        if (!System.IO.File.Exists(path))
-            return new List<UserData>();
-
-        string json = System.IO.File.ReadAllText(path);
-        PlayerApi.UserListWrapper wrapper = JsonUtility.FromJson<PlayerApi.UserListWrapper>(json);
-
-        return wrapper?.users ?? new List<UserData>();
-    }
-
-    private void DisplayLeaderboard()
-    {
+        // 4) Create a row for each user
         for (int i = 0; i < sortedUsers.Count; i++)
         {
             GameObject row = Instantiate(leaderboardRowPrefab, leaderboardParent);
+            row.SetActive(true);
 
             TMP_Text[] cols = row.GetComponentsInChildren<TMP_Text>();
 
+            if (cols.Length < 3)
+            {
+                Debug.LogWarning($"[LB] Row prefab has only {cols.Length} TMP_Text components.");
+                continue;
+            }
+
             UserData u = sortedUsers[i];
 
-            cols[0].text = (i + 1).ToString();  // Rank
-            cols[1].text = u.Username;         // Username
-            cols[2].text = u.Wins.ToString();  // Wins
+            cols[0].text = (i + 1).ToString();   // Rank
+            cols[1].text = u.Username;          // Username
+            cols[2].text = u.Wins.ToString();   // Wins
+
+            Debug.Log($"[LB] Row {i}: {u.Username}, wins={u.Wins}");
         }
+
+        Debug.Log($"[LB] Total children under parent: {leaderboardParent.childCount}");
     }
 }

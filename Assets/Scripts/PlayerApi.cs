@@ -18,6 +18,7 @@ using UnityEngine;
 /// </summary>
 public class PlayerApi : MonoBehaviour
 {
+
     public static PlayerApi Instance { get; private set; }
 
     // ---------- Request / Response DTOs ----------
@@ -317,5 +318,11 @@ public class PlayerApi : MonoBehaviour
         PlayerPrefs.SetString(key, json);
         PlayerPrefsUtility.AddUserKey(key);
         PlayerPrefs.Save();
+    }
+
+    public List<UserData> GetAllUsers()
+    {
+        // Return a copy of the current in-memory users
+        return new List<UserData>(users.Values);
     }
 }
